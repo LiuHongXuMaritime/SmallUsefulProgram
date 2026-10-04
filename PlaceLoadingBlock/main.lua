@@ -347,17 +347,18 @@ local function refuelAnchor()
     if not startSlot then
         return false, "背包里没有末影珍珠"
     end
-    
+
     robot.select(startSlot)
+
+    -- todo
+    -- 自动补充库存 而非换取槽位
+    reFuelAnchorSlot(nowSelectSlot,PEARL_PER_VISIT)
     local have = robot.count(startSlot)
     if have <= 0 then
         return false, "背包里没有末影珍珠"
     end
-    -- todo
-    -- 自动补充库存 而非换取槽位
-    reFuelAnchorSlot(nowSelectSlot,PEARL_PER_VISIT)
     -- 将末影珍珠丢入正下方的区块锚燃料槽
-    local ok = robot.dropDown(PEARL_PER_VISIT)
+    local ok = robot.dropDown(math.min(have,PEARL_PER_VISIT))
     if not ok then
         return false, "补充末影珍珠失败（下方不是区块锚或空间不足）"
     end
