@@ -296,16 +296,18 @@ local function placeLoadingBlock()
 end
 
 --- 查找装有末影珍珠的槽位，没有则返回 nil
-local function findPearlSlot()
+local function findPearlSlot(nowSlot)
     local ic = component.inventory_controller
     if ic then
         for slot = 1, robot.inventorySize() do
-            local stack = ic.getStackInInternalSlot(slot)
-            if stack and stack.name then
-                -- 归一化物品名：去掉空格/下划线/横线/点，再匹配 enderpearl
-                local name = stack.name:lower():gsub("[%s_%-%.]", "")
-                if name:find("enderpearl", 1, true) then
-                    return slot
+            if slot ~= nowSlot then
+                local stack = ic.getStackInInternalSlot(slot)
+                if stack and stack.name then
+                    -- 归一化物品名：去掉空格/下划线/横线/点，再匹配 enderpearl
+                    local name = stack.name:lower():gsub("[%s_%-%.]", "")
+                    if name:find("enderpearl", 1, true) then
+                        return slot, stack.count
+                    end
                 end
             end
         end
@@ -314,22 +316,48 @@ local function findPearlSlot()
     return searchSlotUseful()
 end
 
+local function reFuelAnchorSlot(nowSelectSlot,needFuelAmount)
+    local nowCount = robot.count(nowSelectSlot)
+    if nowCount + needFuelAmount > 64 then
+        print("当前槽位末影珍珠数量过多，无法补充")
+        needFuelAmount = 64 - nowCount
+    end
+
+    local nextSlot, nextCount = findPearlSlot(nowSelectSlot)
+    local needFuelAmount = needFuelAmount or PEARL_PER_VISIT
+    if nextSlot then
+        if needFuelAmount <= nextCount then
+            robot.select(nextSlot)
+            robot.transferTo(nowSelectSlot, needFuelAmount)
+            print("单次补充完毕")
+        else 
+            robot.select(nextSlot)
+            robot.transferTo(nowSelectSlot, nextCount)
+            reFuelAnchorSlot(nowSelectSlot,needFuelAmount - nextCount)
+        end
+        
+    end
+
+end
+
 --- 为正下方的区块锚补充末影珍珠
 local function refuelAnchor()
-    local slot = findPearlSlot()
-    if not slot then
+    local nowSelectSlot =  robot.select()
+    local startSlot = findPearlSlot(nowSelectSlot)
+    if not startSlot then
         return false, "背包里没有末影珍珠"
     end
-    robot.select(slot)
-
-    local have = robot.count(slot)
+    
+    robot.select(startSlot)
+    local have = robot.count(startSlot)
     if have <= 0 then
         return false, "背包里没有末影珍珠"
     end
-    local want = math.min(PEARL_PER_VISIT, have)
-
+    -- todo
+    -- 自动补充库存 而非换取槽位
+    reFuelAnchorSlot(nowSelectSlot,PEARL_PER_VISIT)
     -- 将末影珍珠丢入正下方的区块锚燃料槽
-    local ok = robot.dropDown(want)
+    local ok = robot.dropDown(PEARL_PER_VISIT)
     if not ok then
         return false, "补充末影珍珠失败（下方不是区块锚或空间不足）"
     end
