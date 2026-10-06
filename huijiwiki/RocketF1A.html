@@ -1,0 +1,77 @@
+<div class="calc-card">
+<div class="calc-header">
+<div class="calc-title">火箭引擎F1A发电量计算器</div>
+<div class="calc-subtitle">GTNH中文维基</div>
+{{#invoke:Calculator/编辑按钮|link|Calculator/火箭引擎F1A发电量计算器}}
+</div>
+
+<div class="calc-body lua-smart-form"
+     data-module="Calculator/火箭引擎F1A发电量计算器"
+     data-function="calculate"
+     style="display:flex; flex-direction:row; flex-wrap:wrap; gap:16px; align-items:flex-start;">
+
+  <!-- 左侧：选项配置 -->
+  <div class="calc-panel -blue calc-area"
+       style="flex:1 1 380px; min-width:0; box-sizing:border-box; max-width:1000px;">
+    <div class="calc-section-title">⚙️ 选项配置</div>
+
+    <div class="calc-field">
+      <div class="calc-field-label">燃料</div>
+      <div class="form-config" style="width:100%; min-width:0; box-sizing:border-box;">
+{"type":"select","name":"fuel","label":"","default":"RP-1火箭燃料","placeholder":"输入燃料名","options":[{"value":"H8N4C2O4火箭燃料","label":"H8N4C2O4火箭燃料"},{"value":"CN3H7O3火箭燃料","label":"CN3H7O3火箭燃料"},{"value":"密集肼火箭燃料","label":"密集肼火箭燃料"},{"value":"RP-1火箭燃料","label":"RP-1火箭燃料"}]}
+      </div>
+    </div>
+
+    <div class="calc-field">
+      <div class="calc-field-label">增压模式</div>
+      <div class="form-config" style="width:100%; min-width:0; box-sizing:border-box;">{"type":"select","name":"isBoost","label":"","default":"否","placeholder":"输入是否增压","options":["是","否"]}
+      </div>
+    </div>
+
+    <div class="calc-field">
+      <div class="calc-field-label">燃料速率 (L/s)</div>
+      <div class="form-config" style="width:100%; min-width:0; box-sizing:border-box;">{ "type": "number", "name": "fuelRate", "label": "", "default": 1000, "min": 0, "step": 0.01 }
+      </div>
+    </div>
+
+    <div class="calc-field">
+      <div class="calc-field-label">折算功率等级</div>
+      <div class="form-config" style="width:100%; min-width:0; box-sizing:border-box;">{ "type": "select", "name": "powerTier", "label": "", "options": ["ULV", "LV", "MV", "HV", "EV", "IV", "LuV", "ZPM", "UV", "UHV", "UEV", "UIV", "UMV", "UXV", "MAX"], "default": "UIV" }
+      </div>
+    </div>
+
+    <div class="calc-hint" style="margin-top:8px;">💡'''发电机理'''
+初始的效率为 160 %
+<br>
+- 正常模式 : 效率以三次根方式 衰减 
+<br>
+- 增压模式 : 效率以(投入量/3)按照正常方式计算 衰减
+<br>
+tips: 火箭引擎每次只吃仓内90% 所以在停机之后会发现输入仓内有余液 wiki 上的那些都是不准确的
+    </div>
+  </div>
+
+  <!-- 右侧：输出结果 -->
+  <div class="calc-area"
+       style="flex:1 1 380px; min-width:0; box-sizing:border-box;">
+    <div class="calc-panel -green -plain"
+         style="width:100%; box-sizing:border-box; max-width:1000px;">
+      <div class="calc-section-title">📊 输出结果</div>
+      <table class="wikitable calc-table" style="width:100%; table-layout:fixed; word-break:break-word;">
+        <tr><th style="width:45%">属性</th><th style="text-align:right">数值</th></tr>
+        <tr><td>燃料标准燃值</td><td style="text-align:right"><span class="form-display calc-num-neutral" data-variable="fuelValue" style="display:inline">--</span> <span class="calc-unit" style="display:inline">EU/L</span></td></tr>
+        <tr><td>理论发电效率</td><td style="text-align:right"><span class="form-display calc-num-primary" data-variable="power_0" style="display:inline">--</span> <span class="calc-unit" style="display:inline">%</span></td></tr>
+        <tr><td>燃料效率</td><td style="text-align:right"><span class="form-display calc-num-primary" data-variable="efficiency" style="display:inline">--</span> <span class="calc-unit" style="display:inline">%</span></td></tr>
+        <tr><td>实际发电功率</td><td style="text-align:right"><span class="form-display calc-num-success" data-variable="power" style="display:inline">--</span> <span class="calc-unit" style="display:inline">EU/t</span></td></tr>
+        <tr><td>空气消耗</td><td style="text-align:right"><span class="form-display calc-num-warning" data-variable="airConsumption" style="display:inline">--</span> <span class="calc-unit" style="display:inline">L/s</span></td></tr>
+        <tr><td>CO2 消耗</td><td style="text-align:right"><span class="form-display calc-num-warning" data-variable="CO2Consumption" style="display:inline">--</span> <span class="calc-unit" style="display:inline">L/h</span></td></tr>
+        <tr><td>液氢消耗</td><td style="text-align:right"><span class="form-display calc-num-warning" data-variable="HydrogenConsumption" style="display:inline">--</span> <span class="calc-unit" style="display:inline">L/s</span></td></tr>
+        <tr><td>污染</td><td style="text-align:right"><span class="form-display calc-num-warning" data-variable="PollutionGeneration" style="display:inline">--</span> <span class="calc-unit" style="display:inline">gibbl/s</span></td></tr>
+        <tr><td>折算后功率</td><td style="text-align:right"><span class="form-display calc-num-primary" data-variable="power_transed" style="display:inline">--</span> <span class="calc-unit" style="display:inline">A <span class="form-display" data-variable="tier_trans" style="display:inline">UIV</span></span></td></tr>
+      </table>
+      <div class="form-display calc-num-danger" data-variable="error" style="margin-top:8px;"></div>
+    </div>
+  </div>
+
+</div>
+</div>
