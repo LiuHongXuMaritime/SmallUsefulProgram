@@ -1,0 +1,530 @@
+/* === 计算器通用样式（零件:AsyncRequester.css 全局加载） === */
+ 
+/* ── 计算器卡片 ── */
+ 
+.calc-card {
+  width: fit-content;
+  max-width: 100%;
+  margin: 1em auto;
+  border: 1px solid #a2a9b1;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+ 
+.calc-header {
+  position: relative;
+  text-align: center;
+  padding: 12px;
+  background-color: #12364B;
+  color: #F3F3F3;
+}
+ 
+.calc-title {
+  font-size: 1.2em;
+  font-weight: 600;
+}
+ 
+.calc-subtitle {
+  font-size: 0.75em;
+  font-weight: 400;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+ 
+/* ── 标题栏右上角的“编辑模板 / 编辑模块”按钮（由 模块:Calculator/编辑按钮 输出） ── */
+ 
+.calc-header > .calc-edit {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+ 
+.calc-header > .calc-edit a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 4px;
+  color: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+}
+ 
+.calc-header > .calc-edit a:hover,
+.calc-header > .calc-edit a:focus-visible {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+ 
+/* 只有带编辑按钮的标题栏才让出两侧空间，长标题不会压住按钮 */
+.calc-header:has(> .calc-edit) {
+  padding-left: 190px;
+  padding-right: 190px;
+}
+ 
+/* ── 主体 flex 布局 ── */
+ 
+.calc-body {
+  display: flex;
+  flex-wrap: wrap;
+}
+ 
+/* ── 面板基础 ＋ 主题色 ── */
+ 
+.calc-panel {
+  /* 默认：white 主题 */
+  --calc-theme-color: #333;
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  padding: 20px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+ 
+/* 排版区域（calc-body 的直接子元素，负责横向分栏与内部纵向叠放） */
+.calc-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+ 
+/* 排版区域内的面板自动撑满剩余高度 */
+.calc-area > .calc-panel {
+  flex: auto;
+}
+ 
+.calc-panel.-white {
+  --calc-theme-color: #333;
+  background-color: #fff;
+}
+ 
+.calc-panel.-blue {
+  --calc-theme-color: #2a4b8d;
+  background-color: #eaf2f8;
+}
+ 
+.calc-panel.-yellow {
+  --calc-theme-color: #8d6a1a;
+  background-color: #fefcf3;
+}
+ 
+.calc-panel.-green {
+  --calc-theme-color: #00af89;
+  background-color: #f2faf5;
+}
+ 
+.calc-panel.-red {
+  --calc-theme-color: #cc3333;
+  background-color: #faf3f3;
+}
+ 
+/* 浅化面板背景（主题色仍生效） */
+.calc-panel.-plain {
+  background-color: #fff;
+}
+ 
+ 
+ 
+ 
+/* ── 章节标题（继承面板主题色） ── */
+ 
+.calc-section-title {
+  margin-bottom: 18px;
+  border-bottom: 2px solid var(--calc-theme-color);
+  padding-bottom: 8px;
+  color: var(--calc-theme-color);
+}
+ 
+/* 同一面板里的第二个及之后的区域标题（上面已有表格/内容）留出间距，
+   避免像“当前汇总 / 出矿明细”那样贴在一起；带行内 margin 的标题不受影响。 */
+.calc-panel > :not(.calc-section-title) + .calc-section-title {
+  margin-top: 18px;
+}
+ 
+/* ── 表单区域 ── */
+ 
+.calc-field {
+  margin-bottom: 15px;
+}
+ 
+.calc-field-label {
+  font-size: 0.9em;
+  margin-bottom: 5px;
+  color: #555;
+}
+ 
+/* 单列输入区：覆盖运行时为数字框设置的固定宽度。 */
+.calc-inputs-stacked .smart-input-wrapper input,
+.calc-inputs-stacked .smart-input-wrapper select {
+  display: block;
+  width: 100% !important;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+ 
+/* ── 数据表格（继承面板主题色） ── */
+.huiji-css-hook .calc-table.wikitable,
+.calc-table {
+  width: 100%;
+  background-color: color-mix(in srgb, var(--calc-theme-color) 3%, #fff);
+  border: 1px solid var(--calc-theme-color);
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 1em;
+  line-height: 2.6em;
+}
+ 
+.huiji-css-hook .calc-table.wikitable tr,
+.calc-table tr {
+  border-bottom: 1px solid #eee;
+}
+ 
+.huiji-css-hook .calc-table.wikitable th,
+.huiji-css-hook .calc-table.wikitable td,
+.calc-table th,
+.calc-table td {
+  padding: 2px 10px;
+  border: 1px solid var(--calc-theme-color);
+}
+ 
+.huiji-css-hook .calc-table.wikitable th,
+.calc-table th {
+  background-color: color-mix(in srgb, var(--calc-theme-color) 45%, #aaa 55%);
+  color: #F3F3F3;
+  font-weight: 600;
+  text-align: center;
+}
+ 
+ 
+ 
+.calc-num-primary {
+  font-weight: bold;
+  color: #2a4b8d;
+  font-size: 1.1em;
+}
+ 
+.calc-num-success {
+  font-weight: bold;
+  color: #00af89;
+  font-size: 1.1em;
+}
+ 
+.calc-num-danger {
+  font-weight: bold;
+  color: #cc3333;
+  font-size: 1.1em;
+}
+ 
+.calc-num-warning {
+  font-weight: bold;
+  color: #b8860b;
+  font-size: 1.1em;
+}
+ 
+.calc-num-neutral {
+  font-weight: bold;
+  color: #333;
+  font-size: 1.1em;
+}
+ 
+.calc-unit {
+  color: #999;
+}
+ 
+/* ── 底部信息栏 ── */
+ 
+.calc-footer {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8em;
+  color: #bbb;
+  border-top: 1px dashed #eee;
+  padding-top: 8px;
+}
+ 
+/* ── 提示框 ── */
+ 
+.calc-hint {
+  margin-top: 20px;
+  background-color: #fffdf3;
+  border: 1px solid #fbe397;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  color: #7d5a29;
+}
+ 
+/* ── 说明/假设区 ── */
+ 
+.calc-note {
+  margin-top: 25px;
+  padding: 10px;
+  background: #fff;
+  font-size: 0.85em;
+  color: #666;
+  line-height: 1.5;
+  border-radius: 4px;
+  border: 1px solid #e2e2e2;
+}
+ 
+/* ── 响应式：窄屏 ── */
+ 
+/* ── search / search-list 控件：白色小卡片 ── */
+ 
+.search-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 5px 3px 8px;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+ 
+.search-view {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+ 
+.search-selected-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #333;
+}
+ 
+.search-edit-wrap {
+  position: relative;
+  display: none;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+ 
+.search-card.is-editing .search-view {
+  display: none;
+}
+ 
+.search-card.is-editing .search-edit-wrap {
+  display: flex;
+}
+ 
+.search-input-text {
+  width: 100%;
+  min-width: 0;
+  padding: 3px 5px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  box-sizing: border-box;
+}
+ 
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  z-index: 100;
+  display: none;
+  min-width: 180px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+ 
+.search-dropdown-item {
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+ 
+.search-dropdown-item:hover {
+  background: #f0f6ff;
+}
+ 
+.search-edit-btn,
+.search-del-btn,
+.search-add-btn {
+  flex: 0 0 auto;
+  cursor: pointer;
+  padding: 1px 5px;
+  font-size: 12px;
+  line-height: 1.4;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: #f5f5f5;
+  color: #444;
+}
+ 
+.search-edit-btn:hover {
+  background: #e9eef5;
+}
+ 
+.search-del-btn {
+  color: #c0392b;
+  background: #fdecec;
+  border-color: #eeb4b4;
+}
+ 
+.search-del-btn:hover {
+  background: #f9dede;
+}
+ 
+.search-add-btn {
+  color: #1a7f4b;
+  background: #eaf7ef;
+  border-color: #a9d9bd;
+}
+ 
+.search-add-btn:hover {
+  background: #ddf0e4;
+}
+ 
+/* 列表模式：卡片横排，添加按钮与卡片同处文档流、排在最后一张卡片之后 */
+ 
+.search-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+ 
+.search-list > .search-card {
+  flex: 0 1 auto;
+  max-width: 260px;
+}
+ 
+.search-list-empty {
+  display: block;
+  margin: 2px 0 6px;
+  font-size: 12px;
+  color: #999;
+}
+ 
+.search-list-empty.is-empty-hidden {
+  display: none;
+}
+ 
+/* ── switch 控件：分段切换按钮（value 为文本，label 可含 <i> 图标） ── */
+ 
+.switch-group {
+  display: inline-flex;
+  align-items: stretch;
+  max-width: 100%;
+  border: 1px solid #2a4b8d;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+}
+ 
+.switch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 5px 12px;
+  border: 0;
+  border-left: 1px solid #2a4b8d;
+  background: #fff;
+  color: #2a4b8d;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+ 
+.switch-btn:first-child {
+  border-left: 0;
+}
+ 
+.switch-btn:hover {
+  background: #f8fbff;
+}
+ 
+.switch-btn.is-active {
+  background: #2a4b8d;
+  color: #fff;
+  font-weight: 600;
+}
+ 
+/* ── button 控件：手动重算按钮（请求期间禁点并显示加载态） ── */
+ 
+.calc-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 5px 12px;
+  border: 1px solid #2a4b8d;
+  border-radius: 4px;
+  background: #fff;
+  color: #2a4b8d;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+ 
+.calc-button:hover:not(:disabled) {
+  background: #f8fbff;
+}
+ 
+.calc-button:disabled,
+.calc-button.is-loading {
+  border-color: #a2a9b1;
+  background: #f2f4f7;
+  color: #72777d;
+  cursor: progress;
+}
+ 
+@media (max-width: 992px) {
+  .calc-card {
+    width: 100%;
+  }
+ 
+  .calc-area {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    border-right: none;
+    border-bottom: 1px solid #dee2e6;
+  }
+}
+ 
+@media (max-width: 992px) {
+  .calc-header:has(> .calc-edit) {
+    padding-left: 168px;
+    padding-right: 168px;
+  }
+}
+ 
+/* 窄屏改为标题下方居中一行，避免两个按钮压住标题 */
+@media (max-width: 640px) {
+  .calc-header > .calc-edit {
+    position: static;
+    transform: none;
+    justify-content: center;
+    margin-top: 8px;
+  }
+ 
+  .calc-header:has(> .calc-edit) {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
