@@ -4,14 +4,23 @@ local navigation = component.navigation
 local robot = require("robot")
 local ser = require("serialization")
 
--- 巡航高度：放置加载方块时机器人悬停的高度
-local SET_Y = 200
--- 放置间距：每 3 个区块（16*3）放一个加载方块
-local DIS = 16 * 3
+-- 参数的默认值（首次运行、存档缺失或手动重置时使用）
+local CONFIG_DEFAULTS = {
+    SET_Y = 200,         -- 巡航高度：放置加载方块时机器人悬停的高度
+    DIS = 16 * 3,        -- 放置间距：每 3 个区块（16*3）放一个加载方块
+    PEARL_PER_VISIT = 8, -- 每个区块锚每次补充的末影珍珠数量
+}
+
+-- 可调参数（实际值保存在 CONFIG_FILE 中，可通过菜单“4. 更新参数”修改）
+local CONFIG = {
+    SET_Y = CONFIG_DEFAULTS.SET_Y,
+    DIS = CONFIG_DEFAULTS.DIS,
+    PEARL_PER_VISIT = CONFIG_DEFAULTS.PEARL_PER_VISIT,
+}
 -- 进度存档文件
 local GRID_FILE = "grid_data.lua"
--- 每个区块锚每次补充的末影珍珠数量
-local PEARL_PER_VISIT = 8
+-- 参数存档文件
+local CONFIG_FILE = "plb_config.lua"
 
 --------------------------------------------------------------------------
 -- 存档读写
@@ -38,9 +47,9 @@ local function loadGridFromDisk()
         grid.i_min, grid.i_max = 0, (grid.nx or 1) - 1
         grid.j_min, grid.j_max = 0, (grid.nz or 1) - 1
         grid.x1 = grid.origin_x
-        grid.x2 = grid.origin_x + grid.i_max * DIS
+        grid.x2 = grid.origin_x + grid.i_max * CONFIG.DIS
         grid.z1 = grid.origin_z
-        grid.z2 = grid.origin_z + grid.j_max * DIS
+        grid.z2 = grid.origin_z + grid.j_max * CONFIG.DIS
     end
     return grid
 end
@@ -52,6 +61,47 @@ local function saveGridToDisk(grid)
         return false
     end
     file:write(ser.serialize(grid))
+    file:close()
+    return true
+end
+
+--------------------------------------------------------------------------
+-- 参数读写
+--------------------------------------------------------------------------
+
+--- 从磁盘加载可调参数，缺失或损坏时保持默认值
+local function loadConfigFromDisk()
+    local file = io.open(CONFIG_FILE, "r")
+    if not file then
+        return
+    end
+    local data = file:read("*a")
+    file:close()
+    if not data or data == "" then
+        return
+    end
+    local ok, cfg = pcall(ser.unserialize, data)
+    if not ok or type(cfg) ~= "table" then
+        print("参数存档 " .. CONFIG_FILE .. " 格式不正确，将使用默认参数")
+        return
+    end
+    -- 只接受数值型字段，避免旧存档/脏数据污染
+    for k in pairs(CONFIG) do
+        local v = cfg[k]
+        if type(v) == "number" then
+            CONFIG[k] = v
+        end
+    end
+end
+
+--- 保存可调参数到磁盘
+local function saveConfigToDisk()
+    local file = io.open(CONFIG_FILE, "w")
+    if not file then
+        print("无法写入 " .. CONFIG_FILE .. "，请检查权限")
+        return false
+    end
+    file:write(ser.serialize(CONFIG))
     file:close()
     return true
 end
@@ -71,10 +121,10 @@ local function buildGrid(x1, x2, z1, z2, ax, az)
     local grid = {
         origin_x = origin_x,
         origin_z = origin_z,
-        i_min = math.floor((x_min - origin_x) / DIS),
-        i_max = math.floor((x_max - origin_x) / DIS),
-        j_min = math.floor((z_min - origin_z) / DIS),
-        j_max = math.floor((z_max - origin_z) / DIS),
+        i_min = math.floor((x_min - origin_x) / CONFIG.DIS),
+        i_max = math.floor((x_max - origin_x) / CONFIG.DIS),
+        j_min = math.floor((z_min - origin_z) / CONFIG.DIS),
+        j_max = math.floor((z_max - origin_z) / CONFIG.DIS),
         -- 记录区域边界，下次可直接复用 / 扩大
         x1 = x_min, x2 = x_max, z1 = z_min, z2 = z_max,
         cells = {}, -- cells[i][j] == true 表示已放置
@@ -95,7 +145,7 @@ end
 
 --- 格号 (i, j) 换算成世界坐标
 local function cellToWorld(grid, i, j)
-    return grid.origin_x + i * DIS, grid.origin_z + j * DIS
+    return grid.origin_x + i * CONFIG.DIS, grid.origin_z + j * CONFIG.DIS
 end
 
 --- 在原有网格基础上扩大范围（与旧边界取并集），
@@ -110,10 +160,10 @@ local function expandGrid(grid, x1, x2, z1, z2)
     local n_z2 = math.max(grid.z2, z_max)
 
     local origin_x, origin_z = grid.origin_x, grid.origin_z
-    local ni_min = math.floor((n_x1 - origin_x) / DIS)
-    local ni_max = math.floor((n_x2 - origin_x) / DIS)
-    local nj_min = math.floor((n_z1 - origin_z) / DIS)
-    local nj_max = math.floor((n_z2 - origin_z) / DIS)
+    local ni_min = math.floor((n_x1 - origin_x) / CONFIG.DIS)
+    local ni_max = math.floor((n_x2 - origin_x) / CONFIG.DIS)
+    local nj_min = math.floor((n_z1 - origin_z) / CONFIG.DIS)
+    local nj_max = math.floor((n_z2 - origin_z) / CONFIG.DIS)
 
     local old_cells = grid.cells
     local old_fueled = grid.fueled
@@ -157,13 +207,13 @@ local function ensureAltitude()
     if not x then
         return false, "无法获取当前位置（超出导航范围？）"
     end
-    while y < SET_Y do
+    while y < CONFIG.SET_Y do
         if not robot.up() then
             return false, "无法上升，请检查是否有障碍物或电量不足"
         end
         y = y + 1
     end
-    while y > SET_Y do
+    while y > CONFIG.SET_Y do
         if not robot.down() then
             return false, "无法下降，请检查是否有障碍物或电量不足"
         end
@@ -355,11 +405,11 @@ end
 --- 为正下方的区块锚补充末影珍珠
 local function refuelAnchor()
     -- 先看下方燃料槽已有多少，只补差额，避免浪费或重复投放
-    local need = PEARL_PER_VISIT
+    local need = CONFIG.PEARL_PER_VISIT
     local ic = component.inventory_controller
     local downStack = ic and ic.getStackInSlot(sides.down, 1)
     if downStack then
-        need = PEARL_PER_VISIT - (downStack.size or 0)
+        need = CONFIG.PEARL_PER_VISIT - (downStack.size or 0)
     end
     if need <= 0 then
         return true -- 已补满，无需操作
@@ -684,11 +734,166 @@ local function main3()
     print(string.format("当前共 %d 格，已放置 %d 格", total, placed))
 end
 
+--- 打印当前全部参数与状态
+local function printCurrentState(grid)
+    print("=========== 当前状态 ===========")
+    if grid then
+        print(string.format("区域：X[%.0f, %.0f] Z[%.0f, %.0f]",
+            grid.x1, grid.x2, grid.z1, grid.z2))
+        if grid.home_x and grid.home_z then
+            print(string.format("起始点：(%.0f, %.0f)", grid.home_x, grid.home_z))
+        else
+            print("起始点：未记录")
+        end
+    else
+        print("区域：未创建")
+        print("起始点：未记录")
+    end
+    print(string.format("巡航高度 SET_Y = %d", CONFIG.SET_Y))
+    print(string.format("放置间距 DIS = %d", CONFIG.DIS))
+    print(string.format("每次补充珍珠 PEARL_PER_VISIT = %d", CONFIG.PEARL_PER_VISIT))
+    print("--------------------------------")
+end
+
+--- 读取一个正整数，非法输入返回 nil
+local function readPositiveInt(prompt)
+    print(prompt)
+    local v = tonumber(io.read())
+    if not v or v <= 0 or v ~= math.floor(v) then
+        return nil
+    end
+    return v
+end
+
+--- 询问是否确认，输入 y/Y 视为确认
+local function confirm(prompt)
+    print(prompt .. " (y/N)")
+    local ans = io.read()
+    return ans == "y" or ans == "Y"
+end
+
+--- 更新参数：起始点及其它可调参数
+local function main4()
+    local grid = loadGridFromDisk()
+
+    while true do
+        printCurrentState(grid)
+        print("请选择要更新的参数：")
+        print("  1. 用当前位置更新起始点")
+        print("  2. 手动输入起始点坐标")
+        print("  3. 修改巡航高度 SET_Y")
+        print("  4. 修改放置间距 DIS")
+        print("  5. 修改每次补充珍珠数量")
+        print("  6. 重置为默认参数")
+        print("  0. 返回主菜单")
+        local press = io.read()
+
+        if press == "0" then
+            break
+
+        elseif press == "1" then
+            if not grid then
+                print("尚未创建区域，请先在主菜单选择 1 创建区域")
+            else
+                local x, y, z = navigation.getPosition()
+                if type(x) ~= "number" or type(z) ~= "number" then
+                    print("无法获取当前位置（超出导航范围？）")
+                else
+                    grid.home_x, grid.home_z = x, z
+                    saveGridToDisk(grid)
+                    print(string.format("已用当前位置更新起始点：(%.0f, %.0f)", x, z))
+                end
+            end
+
+        elseif press == "2" then
+            if not grid then
+                print("尚未创建区域，请先在主菜单选择 1 创建区域")
+            else
+                print("请输入起始点 X 坐标")
+                local hx = tonumber(io.read())
+                print("请输入起始点 Z 坐标")
+                local hz = tonumber(io.read())
+                if not (hx and hz) then
+                    print("输入的坐标有误")
+                else
+                    grid.home_x, grid.home_z = hx, hz
+                    saveGridToDisk(grid)
+                    print(string.format("起始点已更新为：(%.0f, %.0f)", hx, hz))
+                end
+            end
+
+        elseif press == "3" then
+            local v = readPositiveInt(string.format("当前巡航高度 = %d，请输入新的巡航高度", CONFIG.SET_Y))
+            if not v then
+                print("输入无效，必须为正整数")
+            else
+                CONFIG.SET_Y = v
+                saveConfigToDisk()
+                print(string.format("巡航高度已更新为 %d", v))
+            end
+
+        elseif press == "4" then
+            local v = readPositiveInt(string.format("当前放置间距 = %d，请输入新的间距", CONFIG.DIS))
+            if not v then
+                print("输入无效，必须为正整数")
+            else
+                local warn = "修改间距会改变网格布局"
+                if grid then
+                    warn = warn .. "，现有网格将按相同世界范围重新生成，已放置/已投喂记录会被清空"
+                end
+                if confirm(warn .. "，确认修改？") then
+                    CONFIG.DIS = v
+                    if grid then
+                        -- 保留起始点（世界坐标，与间距无关）
+                        local home_x, home_z = grid.home_x, grid.home_z
+                        grid = buildGrid(grid.x1, grid.x2, grid.z1, grid.z2,
+                            grid.origin_x, grid.origin_z)
+                        grid.home_x, grid.home_z = home_x, home_z
+                        saveGridToDisk(grid)
+                        print("网格已按新间距重新生成")
+                    end
+                    saveConfigToDisk()
+                    print(string.format("放置间距已更新为 %d", v))
+                else
+                    print("已取消修改")
+                end
+            end
+
+        elseif press == "5" then
+            local v = readPositiveInt(string.format("当前每次补充珍珠数量 = %d，请输入新数量",
+                CONFIG.PEARL_PER_VISIT))
+            if not v then
+                print("输入无效，必须为正整数")
+            else
+                CONFIG.PEARL_PER_VISIT = v
+                saveConfigToDisk()
+                print(string.format("每次补充珍珠数量已更新为 %d", v))
+            end
+
+        elseif press == "6" then
+            if confirm("确认将巡航高度/间距/珍珠数量重置为默认值？") then
+                for k, dv in pairs(CONFIG_DEFAULTS) do
+                    CONFIG[k] = dv
+                end
+                saveConfigToDisk()
+                print("已重置为默认参数")
+            else
+                print("已取消重置")
+            end
+
+        else
+            print("无效的选项")
+        end
+    end
+end
+
 local function main()
+    loadConfigFromDisk()
     print("请选择操作：")
     print("  1. 放置加载方块（区块锚）")
     print("  2. 补充末影珍珠")
     print("  3. 扩大区域范围")
+    print("  4. 更新参数（起始点/巡航高度/间距/珍珠数量）")
     local press = io.read()
     if press == "1" then
         main1()
@@ -696,8 +901,10 @@ local function main()
         main2()
     elseif press == "3" then
         main3()
+    elseif press == "4" then
+        main4()
     else
-        print("无效的选项，请输入 1、2 或 3")
+        print("无效的选项，请输入 1、2、3 或 4")
     end
 end
 
